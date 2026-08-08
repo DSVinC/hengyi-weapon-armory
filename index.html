@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>枪械库 - Gun Atelier</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;600&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #e8e8e4;
+  --bg-light: #f0f0ec;
+  --bg-card: #f8f8f5;
+  --text: #2c2420;
+  --text-secondary: #8a7e76;
+  --accent: #4a6a4a;
+  --accent-light: #7a9a7a;
+  --accent-dark: #3a5a3a;
+  --border: #e0d8ce;
+  --shadow: rgba(44,36,32,0.08);
+  --hotspot: #e74c3c;
+  --hotspot-ring: rgba(231,76,60,0.3);
+}
+
+body {
+  font-family: 'Noto Sans SC', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* ===== Top Nav ===== */
+.top-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 20px; background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  height: 48px; z-index: 20; position: relative;
+}
+.logo {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 18px; font-weight: 700; color: var(--text);
+}
+.logo span { color: var(--accent); }
+.nav-links { display: flex; gap: 20px; }
+.nav-links a {
+  text-decoration: none; color: var(--text-secondary);
+  font-size: 13px; font-weight: 500; transition: color 0.2s;
+}
+.nav-links a:hover, .nav-links a.active { color: var(--accent); }
+.search-bar {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 14px; width: 220px;
+}
+.search-bar input {
+  border: none; background: none; outline: none;
+  font-size: 12px; color: var(--text); width: 100%;
+}
+.search-bar input::placeholder { color: var(--text-secondary); }
+
+/* ===== Main Layout ===== */
+.main-layout {
+  display: flex; height: calc(100vh - 48px - 40px);
+}
+
+/* ===== Left Panel: Weapon Library ===== */
+.weapon-library {
+  width: 220px; background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  overflow-y: auto; flex-shrink: 0;
+}
+.library-header {
+  padding: 12px 14px 8px; font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary);
+}
+.weapon-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; cursor: pointer; transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+.weapon-item:hover { background: var(--bg); }
+.weapon-item.active {
+  background: rgba(196,112,75,0.08);
+  border-left-color: var(--accent);
+}
+.weapon-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: var(--bg); display: flex; align-items: center;
+  justify-content: center; font-size: 18px; flex-shrink: 0;
+}
+.weapon-item.active .weapon-icon { background: var(--accent-light); }
+.weapon-name { font-size: 13px; font-weight: 500; }
+.weapon-type { font-size: 10px; color: var(--text-secondary); margin-top: 1px; }
+
+/* ===== Center: 3D Viewer ===== */
+.viewer-area {
+  flex: 1; position: relative; background: var(--bg);
+  overflow: hidden;
+}
+#viewer-canvas {
+  width: 100%; height: 100%; display: block;
+}
+
+/* Floating Toolbar */
+.float-toolbar {
+  position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 4px; z-index: 10;
+}
+.float-btn {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 16px; transition: all 0.2s;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+.float-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.float-btn.active { background: var(--accent); color: #fff; }
+
+/* Tip Card */
+.tip-card {
+  position: absolute; right: 16px; top: 16px;
+  background: #fffde7; border: 1px solid #f0e68c;
+  border-radius: 8px; padding: 10px 14px;
+  font-size: 11px; line-height: 1.6; color: #6d6320;
+  max-width: 180px; z-index: 10;
+  box-shadow: 0 2px 12px var(--shadow);
+}
+.tip-card strong { display: block; margin-bottom: 4px; font-size: 12px; }
+
+/* Hotspot Labels */
+.hotspot-label {
+  position: absolute; transform: translate(-50%, -100%);
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 12px; font-size: 11px;
+  white-space: nowrap; pointer-events: none; z-index: 10;
+  box-shadow: 0 2px 12px var(--shadow);
+  opacity: 0; transition: opacity 0.25s; display: none;
+}
+.hotspot-label.visible { opacity: 1; display: block; }
+.hotspot-label .hl-name { font-weight: 600; margin-bottom: 2px; color: var(--text); }
+.hotspot-label .hl-desc { font-size: 10px; color: var(--text-secondary); white-space: normal; max-width: 160px; }
+.hotspot-label.visible { opacity: 1; }
+
+/* Bottom Info */
+.viewer-bottom {
+  position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+  font-size: 10px; color: var(--text-secondary);
+  background: rgba(245,240,232,0.8); padding: 4px 12px;
+  border-radius: 12px; z-index: 10;
+}
+
+/* ===== Right Panel: Detail ===== */
+.detail-panel {
+  width: 280px; background: var(--bg-card);
+  border-left: 1px solid var(--border);
+  overflow-y: auto; flex-shrink: 0;
+  padding: 20px;
+}
+.detail-category {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--accent); margin-bottom: 6px;
+}
+.detail-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 28px; font-weight: 700; color: var(--text);
+  line-height: 1.2;
+}
+.detail-subtitle {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 13px; color: var(--accent); font-style: italic;
+  margin-top: 4px; margin-bottom: 14px;
+}
+.detail-desc {
+  font-size: 13px; line-height: 1.7; color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+.detail-section-title {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--text-secondary);
+  margin-bottom: 10px; margin-top: 16px;
+}
+.fact-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 0; font-size: 12px;
+}
+.fact-icon { font-size: 14px; width: 20px; text-align: center; }
+.fact-label { color: var(--text-secondary); width: 60px; flex-shrink: 0; }
+.fact-value { font-weight: 500; }
+.importance-box {
+  background: rgba(196,112,75,0.06); border-radius: 8px;
+  padding: 10px 12px; margin-top: 10px;
+}
+.importance-box .label {
+  font-size: 10px; font-weight: 600; color: var(--accent);
+  margin-bottom: 4px;
+}
+.importance-box p {
+  font-size: 12px; line-height: 1.6; color: var(--text-secondary);
+}
+.fun-fact {
+  background: rgba(100,160,200,0.06); border-radius: 8px;
+  padding: 10px 12px; margin-top: 10px;
+}
+.fun-fact .label {
+  font-size: 10px; font-weight: 600; color: #5599bb;
+  margin-bottom: 4px;
+}
+.fun-fact p {
+  font-size: 12px; line-height: 1.6; color: var(--text-secondary);
+}
+.detail-actions {
+  display: flex; gap: 8px; margin-top: 20px;
+}
+.detail-btn {
+  flex: 1; padding: 8px 12px; border-radius: 8px;
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  border: 1px solid var(--border); background: var(--bg);
+  color: var(--text); transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+}
+.detail-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.detail-btn.primary {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+}
+.detail-btn.primary:hover { background: var(--accent-dark); }
+
+/* ===== Bottom Toolbar ===== */
+.bottom-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 20px; background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  height: 40px;
+}
+.bottom-tools { display: flex; gap: 4px; }
+.bottom-tool {
+  padding: 5px 12px; border-radius: 6px; font-size: 11px;
+  font-weight: 500; cursor: pointer; border: 1px solid transparent;
+  background: none; color: var(--text-secondary); transition: all 0.2s;
+  display: flex; align-items: center; gap: 4px;
+}
+.bottom-tool:hover { background: var(--bg); border-color: var(--border); }
+.bottom-tool.active { background: rgba(196,112,75,0.1); color: var(--accent); }
+.auto-rotate-toggle {
+  display: flex; align-items: center; gap: 6px; font-size: 11px;
+  color: var(--text-secondary);
+}
+.toggle-switch {
+  width: 32px; height: 18px; border-radius: 9px;
+  background: var(--border); cursor: pointer; position: relative;
+  transition: background 0.3s;
+}
+.toggle-switch.on { background: var(--accent); }
+.toggle-switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; transition: transform 0.3s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.toggle-switch.on::after { transform: translateX(14px); }
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+  .weapon-library { width: 180px; }
+  .detail-panel { width: 240px; }
+}
+@media (max-width: 700px) {
+  .weapon-library { display: none; }
+  .detail-panel { display: none; }
+  .nav-links { display: none; }
+  .search-bar { width: 160px; }
+  .float-toolbar { left: 8px; }
+  .float-btn { width: 32px; height: 32px; font-size: 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Top Navigation -->
+<nav class="top-nav">
+  <div class="logo">🔫 Gun <span>Atelier</span></div>
+  <div class="nav-links">
+    <a href="#" class="active">浏览</a>
+    <a href="#">类型</a>
+    <a href="#">历史</a>
+    <a href="#">收藏</a>
+    <a href="#">笔记</a>
+  </div>
+  <div class="search-bar">
+    <span></span>
+    <input type="text" placeholder="搜索枪械、类型..." id="search-input">
+  </div>
+</nav>
+
+<!-- Main Layout -->
+<div class="main-layout">
+
+  <!-- Left: Weapon Library -->
+  <div class="weapon-library" id="weapon-library"></div>
+
+  <!-- Center: 3D Viewer -->
+  <div class="viewer-area">
+    <select id="weapon-select" style="
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      z-index: 15; padding: 8px 36px 8px 16px; border-radius: 20px;
+      border: 1px solid var(--border); background: var(--bg-card);
+      font-size: 13px; font-family: inherit; color: var(--text);
+      box-shadow: 0 2px 8px var(--shadow);
+      cursor: pointer; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238a7e76' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      min-width: 160px;
+    "></select>
+    <iframe id="sketchfab-viewer" allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen mozallowfullscreen="true" webkitallowfullscreen="true" style="width:100%;height:100%;border:none;"></iframe>
+
+    <div class="float-toolbar">
+      <div class="float-btn" id="btn-rotate" title="旋转">🔄</div>
+      <div class="float-btn" id="btn-zoom" title="缩放">🔍</div>
+      <div class="float-btn" id="btn-isolate" title="隔离"></div>
+      <div class="float-btn" id="btn-explode" title="分解">💥</div>
+      <div class="float-btn" id="btn-layers" title="图层">📑</div>
+      <div class="float-btn" id="btn-compare" title="对比">⚖️</div>
+      <div class="float-btn" id="btn-reset" title="重置">↩️</div>
+    </div>
+
+    <div class="tip-card">
+      <strong> 提示</strong>
+      拖拽旋转 · 滚轮缩放<br>
+      点击热点了解更多
+    </div>
+
+    <div class="viewer-bottom" id="viewer-bottom">3D 模型 · 点击热点探索枪械细节</div>
+  </div>
+
+  <!-- Right: Detail Panel -->
+  <div class="detail-panel" id="detail-panel"></div>
+</div>
+
+<!-- Bottom Toolbar -->
+<div class="bottom-toolbar">
+  <div class="bottom-tools">
+    <div class="bottom-tool active">🔧 结构视图</div>
+    <div class="bottom-tool">⚖️ 对比枪械</div>
+    <div class="bottom-tool">🎬 动作演示</div>
+    <div class="bottom-tool">📝 武器笔记</div>
+    <div class="bottom-tool"> 历史来源</div>
+  </div>
+  <div class="auto-rotate-toggle">
+    <span>自动旋转</span>
+    <div class="toggle-switch on" id="auto-rotate-toggle"></div>
+  </div>
+</div>
+
+<script src="https://static.sketchfab.com/api/sketchfab-viewer-1.12.0.js"></script>
+<script>
+(function() {
+  // ===== Weapon Data =====
+  const weapons = [
+    {
+      id: 'ak47',
+      name: 'AK-47',
+      nameEn: 'AK-47 Assault Rifle',
+      type: '突击步枪',
+      icon: '🔫',
+      category: 'ASSAULT RIFLES',
+      subtitle: 'The people\'s rifle',
+      desc: '卡拉什尼科夫设计的AK-47是世界上产量最大的枪械，超过1亿支。以可靠性著称，即使在泥沙、水中浸泡后仍能正常射击。',
+      facts: [
+        { icon: '📏', label: '全长', value: '880 mm' },
+        { icon: '⚖️', label: '重量', value: '4.3 kg' },
+        { icon: '📅', label: '服役', value: '1949年 苏联' },
+        { icon: '', label: '射程', value: '350 m' },
+        { icon: '', label: '射速', value: '600 发/分' },
+      ],
+      importance: 'AK-47彻底改变了现代战争。它简单、可靠、便宜，被100多个国家的军队和武装组织使用，出现在25个国家的国旗和国徽上。',
+      funFact: 'AK-47的设计灵感来自德国StG44突击步枪，但卡拉什尼科夫简化了生产工艺，使其可以在简陋的工厂中大量制造。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.15, -0.5], desc: '7.62mm口径，镀铬内膛' },
+        { name: '机匣 (Receiver)', pos: [0, 0.1, 0], desc: '冲压钢板，容纳枪机' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.2, 0.1], desc: '30发弧形弹匣' },
+        { name: '枪托 (Stock)', pos: [0, 0.05, 0.5], desc: '木质固定枪托' },
+        { name: '护木 (Handguard)', pos: [0, 0.05, -0.25], desc: '木质隔热护木' },
+      ],
+    },
+    {
+      id: 'm4a1',
+      name: 'M4A1',
+      nameEn: 'M4A1 Carbine',
+      type: '卡宾枪',
+      icon: '🎯',
+      category: 'ASSAULT RIFLES',
+      subtitle: 'The soldier\'s choice',
+      desc: 'M4A1是美军的标准装备，也是全球特种部队最常用的武器之一。模块化设计允许快速更换配件，适应不同任务需求。',
+      facts: [
+        { icon: '📏', label: '全长', value: '840 mm' },
+        { icon: '⚖️', label: '重量', value: '3.4 kg' },
+        { icon: '📅', label: '服役', value: '1994年 美国' },
+        { icon: '🎯', label: '射程', value: '500 m' },
+        { icon: '💨', label: '射速', value: '700-950 发/分' },
+      ],
+      importance: 'M4A1代表了现代步枪的模块化理念。皮卡汀尼导轨系统让士兵可以根据任务快速安装瞄准镜、激光指示器、手电筒等配件。',
+      funFact: 'M4A1的"全自动"版本只提供给特种部队，普通美军使用的是三发点射的M4卡宾枪。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.12, -0.5], desc: '14.5英寸，M4专用' },
+        { name: '机匣 (Receiver)', pos: [0, 0.1, 0], desc: '铝合金，带导轨' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.15, 0.05], desc: 'STANAG 30发' },
+        { name: '枪托 (Stock)', pos: [0, 0.08, 0.45], desc: '可伸缩6档枪托' },
+        { name: '导轨 (Rail)', pos: [0, 0.18, -0.1], desc: '皮卡汀尼战术导轨' },
+      ],
+    },
+    {
+      id: 'desert-eagle',
+      name: '沙漠之鹰',
+      nameEn: 'Desert Eagle',
+      type: '手枪',
+      icon: '🔫',
+      category: 'PISTOLS',
+      subtitle: 'The hand cannon',
+      desc: '沙漠之鹰是威力最大的半自动手枪之一，使用.50 AE口径子弹。独特的气体延迟反冲式设计让它能发射通常只有左轮手枪才能使用的大威力弹药。',
+      facts: [
+        { icon: '📏', label: '全长', value: '273 mm' },
+        { icon: '⚖️', label: '重量', value: '2.0 kg' },
+        { icon: '📅', label: '服役', value: '1982年 以色列' },
+        { icon: '🎯', label: '射程', value: '200 m' },
+        { icon: '', label: '口径', value: '.50 AE / .44 Mag' },
+      ],
+      importance: '沙漠之鹰证明了半自动手枪也能发射大威力弹药。它的气体延迟系统借鉴了机枪设计，是工程学的杰作。',
+      funFact: '虽然沙漠之鹰在电影和游戏中很常见，但实际使用中后坐力极大，连续快速射击非常困难，更多是收藏和靶场用途。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.08, -0.35], desc: '重型枪管，散热孔' },
+        { name: '套筒 (Slide)', pos: [0, 0.12, 0], desc: '不锈钢，气体延迟' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.15, 0.05], desc: '7-9发弹匣' },
+        { name: '握把 (Grip)', pos: [0, -0.1, 0.15], desc: '橡胶防滑握把' },
+        { name: '扳机 (Trigger)', pos: [0, -0.05, 0.1], desc: '单动扳机' },
+      ],
+    },
+    {
+      id: 'awp',
+      name: 'AWP',
+      nameEn: 'AWP Sniper Rifle',
+      type: '狙击步枪',
+      icon: '🎯',
+      category: 'SNIPER RIFLES',
+      subtitle: 'One shot, one kill',
+      desc: 'AWP（精密国际AW系列）是世界上最著名的狙击步枪之一。使用.338拉普马格南弹药，能在1500米外精确命中目标。',
+      facts: [
+        { icon: '📏', label: '全长', value: '1230 mm' },
+        { icon: '⚖️', label: '重量', value: '6.9 kg' },
+        { icon: '📅', label: '服役', value: '1982年 英国' },
+        { icon: '🎯', label: '射程', value: '1500 m' },
+        { icon: '💨', label: '口径', value: '.338 Lapua Mag' },
+      ],
+      importance: 'AWP重新定义了现代狙击战术。它的精度和射程让狙击手能在敌方火力范围外执行任务，改变了战场规则。',
+      funFact: '英国士兵Craig Harrison在阿富汗用AWM（AWP的改进型）在2475米外击中目标，创下了最远狙击记录之一。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.1, -0.7], desc: '26英寸重型枪管' },
+        { name: '机匣 (Action)', pos: [0, 0.1, 0], desc: '旋转后拉枪机' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.1, 0.05], desc: '5发可拆弹匣' },
+        { name: '枪托 (Stock)', pos: [0, 0.05, 0.5], desc: '可调节折叠枪托' },
+        { name: '瞄准镜 (Scope)', pos: [0, 0.25, -0.1], desc: '可变倍率光学瞄准镜' },
+      ],
+    },
+    {
+      id: 'mp5',
+      name: 'MP5',
+      nameEn: 'MP5 Submachine Gun',
+      type: '冲锋枪',
+      icon: '🔫',
+      category: 'SUBMACHINE GUNS',
+      subtitle: 'The precision SMG',
+      desc: 'MP5是德国HK公司设计的9mm冲锋枪，以极高的精度和可靠性闻名。全球特种部队和警察SWAT的标准装备。',
+      facts: [
+        { icon: '📏', label: '全长', value: '680 mm' },
+        { icon: '⚖️', label: '重量', value: '2.5 kg' },
+        { icon: '📅', label: '服役', value: '1966年 德国' },
+        { icon: '🎯', label: '射程', value: '200 m' },
+        { icon: '💨', label: '射速', value: '800 发/分' },
+      ],
+      importance: 'MP5的滚柱延迟反冲系统让它在全自动射击时异常平稳。1980年伊朗大使馆人质事件中，SAS使用MP5的精准表现让它名声大噪。',
+      funFact: 'MP5有超过100种变型，包括消音版、短管版、甚至手枪版，是枪械家族中变型最多的型号之一。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.1, -0.35], desc: '9mm，可装消音器' },
+        { name: '机匣 (Receiver)', pos: [0, 0.1, 0], desc: '滚柱延迟系统' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.15, 0.05], desc: '30发直弹匣' },
+        { name: '枪托 (Stock)', pos: [0, 0.05, 0.35], desc: '可伸缩金属枪托' },
+        { name: '握把 (Grip)', pos: [0, -0.1, 0.15], desc: '人体工学握把' },
+      ],
+    },
+    {
+      id: 'm249',
+      name: 'M249',
+      nameEn: 'M249 SAW',
+      type: '轻机枪',
+      icon: '',
+      category: 'MACHINE GUNS',
+      subtitle: 'Sustained firepower',
+      desc: 'M249班用自动武器是美军的标准轻机枪。能提供持续的压制火力，一个弹链箱200发，也可使用标准弹匣。',
+      facts: [
+        { icon: '', label: '全长', value: '1041 mm' },
+        { icon: '⚖️', label: '重量', value: '7.5 kg' },
+        { icon: '📅', label: '服役', value: '1984年 美国' },
+        { icon: '🎯', label: '射程', value: '800 m' },
+        { icon: '💨', label: '射速', value: '750-1000 发/分' },
+      ],
+      importance: 'M249填补了步枪和重机枪之间的火力空白。一个4人火力组中，M249射手负责压制敌人，让队友机动。',
+      funFact: 'M249的设计源自比利时FN Minimi，它可以使用弹链供弹也可以使用M16/M4的弹匣，在弹链用完时仍能继续战斗。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.12, -0.55], desc: '可快速更换枪管' },
+        { name: '机匣 (Receiver)', pos: [0, 0.1, 0], desc: '开放式枪机设计' },
+        { name: '弹链箱 (Box)', pos: [0, -0.2, 0.1], desc: '200发弹链箱' },
+        { name: '枪托 (Stock)', pos: [0, 0.05, 0.45], desc: '固定金属枪托' },
+        { name: '两脚架 (Bipod)', pos: [0, -0.25, -0.3], desc: '折叠两脚架' },
+      ],
+    }    ,{
+    },{
+      id: 'm416',
+      name: 'M416',
+      nameEn: 'HK416 / M416',
+      type: '突击步枪',
+      icon: '',
+      category: 'ASSAULT RIFLES',
+      subtitle: 'The elite operator\'s rifle',
+      desc: 'M416（HK416的军用版）是德国HK公司设计的突击步枪，采用短行程活塞导气系统，比M4更可靠。被多国特种部队采用，也是绝地求生中的明星武器。',
+      facts: [
+        { icon: '', label: '全长', value: '805-880 mm' },
+        { icon: '️', label: '重量', value: '3.4 kg' },
+        { icon: '', label: '服役', value: '2005年 德国' },
+        { icon: '', label: '射程', value: '500 m' },
+        { icon: '', label: '射速', value: '700-900 发/分' },
+      ],
+      importance: 'M416解决了M4在恶劣环境下的可靠性问题。短行程活塞系统让枪机更清洁，故障率大幅降低，成为现代特种作战的首选武器之一。',
+      funFact: 'M416在《绝地求生》(PUBG)游戏中是最受欢迎的武器之一，其稳定的后坐力和高伤害让它成为职业选手的首选。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.1, -0.45], desc: '短行程活塞导气' },
+        { name: '机匣 (Receiver)', pos: [0, 0.08, 0], desc: '铝合金上下机匣' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.08, 0.04], desc: 'STANAG 30发' },
+        { name: '枪托 (Stock)', pos: [0, 0.07, 0.38], desc: '可伸缩枪托' },
+        { name: '导轨 (Rail)', pos: [0, 0.14, 0], desc: '四面皮卡汀尼导轨' },
+      ],
+    },{
+      id: 'm1911',
+      name: 'M1911',
+      nameEn: 'Colt M1911',
+      type: '手枪',
+      icon: '',
+      category: 'PISTOLS',
+      subtitle: 'The legendary .45',
+      desc: 'M1911是约翰·勃朗宁设计的经典.45口径手枪，服役超过100年。从一战到越战，它陪伴了无数美军士兵，被誉为"美国手枪"。',
+      facts: [
+        { icon: '', label: '全长', value: '216 mm' },
+        { icon: '⚖️', label: '重量', value: '1.1 kg' },
+        { icon: '📅', label: '服役', value: '1911年 美国' },
+        { icon: '🎯', label: '射程', value: '50 m' },
+        { icon: '', label: '口径', value: '.45 ACP' },
+      ],
+      importance: 'M1911是历史上服役时间最长的军用手枪之一。它的大口径.45 ACP子弹拥有极强的停止作用，至今仍是许多执法机构和射击爱好者的首选。',
+      funFact: 'M1911的设计者约翰·勃朗宁被称为"枪械设计之父"，他还设计了勃朗宁自动步枪(BAR)和M2重机枪。',
+      hotspots: [
+        { name: '套筒 (Slide)', pos: [0, 0.1, 0], desc: '钢制套筒，后坐自动' },
+        { name: '枪管 (Barrel)', pos: [0, 0.08, -0.18], desc: '.45口径枪管' },
+        { name: '握把 (Grip)', pos: [0, -0.04, 0.08], desc: '木质握把片' },
+        { name: '扳机 (Trigger)', pos: [0, 0.01, 0.06], desc: '单动扳机' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.06, 0.04], desc: '7发弹匣' },
+      ],
+    },{
+      id: 'g17',
+      name: 'G17',
+      nameEn: 'Glock 17',
+      type: '手枪',
+      icon: '🔫',
+      category: 'PISTOLS',
+      subtitle: 'The polymer revolution',
+      desc: '格洛克17是奥地利格洛克公司设计的9mm手枪，革命性地使用了聚合物枪身。以可靠性极高、结构简单著称，被全球100多个国家的军警采用。',
+      facts: [
+        { icon: '', label: '全长', value: '204 mm' },
+        { icon: '️', label: '重量', value: '0.63 kg' },
+        { icon: '📅', label: '服役', value: '1982年 奥地利' },
+        { icon: '🎯', label: '射程', value: '50 m' },
+        { icon: '', label: '口径', value: '9×19mm' },
+      ],
+      importance: '格洛克17彻底改变了手枪设计。聚合物枪身让它比传统钢制手枪轻40%，且耐腐蚀、免维护。Safe Action扳机系统让它成为最安全的现代手枪之一。',
+      funFact: '格洛克手枪只有34个零件，是同类手枪中零件最少的。创始人格洛克先生原本是制造窗帘拉环的，完全没有枪械设计背景。',
+      hotspots: [
+        { name: '套筒 (Slide)', pos: [0, 0.08, 0], desc: '钢制套筒' },
+        { name: '枪管 (Barrel)', pos: [0, 0.07, -0.15], desc: '9mm枪管' },
+        { name: '握把 (Grip)', pos: [0, -0.04, 0.06], desc: '聚合物握把' },
+        { name: '扳机 (Trigger)', pos: [0, 0.01, 0.05], desc: 'Safe Action扳机' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.06, 0.03], desc: '17发弹匣' },
+      ],
+    },{
+      id: 'g18',
+      name: 'G18',
+      nameEn: 'Glock 18',
+      type: '手枪',
+      icon: '🔫',
+      category: 'PISTOLS',
+      subtitle: 'Full-auto sidearm',
+      desc: '格洛克18是格洛克17的全自动版本，射速高达1200发/分。主要供特种部队和反恐单位使用，可以在近距离提供强大的火力压制。',
+      facts: [
+        { icon: '', label: '全长', value: '204 mm' },
+        { icon: '⚖️', label: '重量', value: '0.62 kg' },
+        { icon: '📅', label: '服役', value: '1986年 奥地利' },
+        { icon: '🎯', label: '射程', value: '50 m' },
+        { icon: '💨', label: '射速', value: '1200 发/分' },
+      ],
+      importance: 'G18是世界上少数几种全自动手枪之一。它的出现让特种部队在CQB（近距离战斗）中多了一种选择，可以用单手提供冲锋枪级别的火力。',
+      funFact: 'G18的射速高达每分钟1200发，一个17发弹匣在不到1秒内就能打光。因此实战中通常使用33发扩容弹匣。',
+      hotspots: [
+        { name: '套筒 (Slide)', pos: [0, 0.08, 0], desc: '带快慢机选择钮' },
+        { name: '枪管 (Barrel)', pos: [0, 0.07, -0.15], desc: '9mm枪管' },
+        { name: '握把 (Grip)', pos: [0, -0.04, 0.06], desc: '聚合物握把' },
+        { name: '快慢机 (Selector)', pos: [0.02, 0.04, 0.04], desc: '半自动/全自动切换' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.06, 0.03], desc: '17/33发弹匣' },
+      ],
+      id: 'ak74',
+      name: 'AK-74',
+      nameEn: 'AK-74M',
+      type: '突击步枪',
+      icon: '🎯',
+      category: 'ASSAULT RIFLES',
+      subtitle: 'The Soviet successor',
+      desc: 'AK-74是AK-47的改进型，改用5.45mm小口径弹药，精度和射程大幅提升。至今仍是俄罗斯军队的标准装备。',
+      facts: [
+        { icon: '', label: '全长', value: '943 mm' },
+        { icon: '⚖️', label: '重量', value: '3.6 kg' },
+        { icon: '📅', label: '服役', value: '1974年 苏联' },
+        { icon: '🎯', label: '射程', value: '500 m' },
+        { icon: '💨', label: '射速', value: '650 发/分' },
+      ],
+      importance: 'AK-74的小口径化让苏联步兵的携弹量增加，同时提高了连发精度。它是AK系列从大口径走向现代化的关键转折点。',
+      funFact: 'AK-74的5.45mm子弹设计独特，击中人体后容易翻滚变形，造成严重的内部创伤，被称为"毒子弹"。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.1, -0.45], desc: '5.45mm枪管' },
+        { name: '机匣 (Receiver)', pos: [0, 0.08, 0], desc: '冲压钢机匣' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.08, 0.04], desc: '5.45mm 30发' },
+        { name: '枪口制退器', pos: [0, 0.1, -0.7], desc: '高效制退器' },
+        { name: '枪托 (Stock)', pos: [0, 0.07, 0.38], desc: '折叠枪托' },
+      ],
+    },{
+      id: 'scar-h',
+      name: 'SCAR-H',
+      nameEn: 'FN SCAR-H',
+      type: '战斗步枪',
+      icon: '🎯',
+      category: 'ASSAULT RIFLES',
+      subtitle: 'The modular warrior',
+      desc: 'SCAR-H是比利时FN公司为美军特种部队设计的战斗步枪，发射7.62mm弹药。模块化设计让它可以快速更换枪管和配件。',
+      facts: [
+        { icon: '', label: '全长', value: '890-1020 mm' },
+        { icon: '⚖️', label: '重量', value: '3.6 kg' },
+        { icon: '📅', label: '服役', value: '2007年 美国' },
+        { icon: '', label: '射程', value: '600 m' },
+        { icon: '', label: '射速', value: '600 发/分' },
+      ],
+      importance: 'SCAR-H的模块化理念代表了现代步枪的发展方向。同一平台可以通过更换零件在突击步枪和精确射手步枪之间切换。',
+      funFact: 'SCAR是"SOF Combat Assault Rifle"（特种作战战斗突击步枪）的缩写，专为美国特种作战司令部设计。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.1, -0.45], desc: '7.62mm快拆枪管' },
+        { name: '机匣 (Receiver)', pos: [0, 0.08, 0], desc: '聚合物机匣' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.08, 0.04], desc: '7.62mm 20发' },
+        { name: '导轨 (Rail)', pos: [0, 0.14, 0], desc: '四面导轨系统' },
+        { name: '枪托 (Stock)', pos: [0, 0.07, 0.4], desc: '可折叠伸缩枪托' },
+      ],
+    },{
+      id: 'p90',
+      name: 'P90',
+      nameEn: 'FN P90',
+      type: '冲锋枪',
+      icon: '🔫',
+      category: 'SUBMACHINE GUNS',
+      subtitle: 'The futuristic SMG',
+      desc: 'P90是比利时FN公司设计的个人防卫武器(PDW)，独特的顶部弹匣和5.7mm高速弹药让它拥有极强的穿透力。',
+      facts: [
+        { icon: '', label: '全长', value: '500 mm' },
+        { icon: '⚖️', label: '重量', value: '2.5 kg' },
+        { icon: '📅', label: '服役', value: '1990年 比利时' },
+        { icon: '🎯', label: '射程', value: '200 m' },
+        { icon: '💨', label: '射速', value: '900 发/分' },
+      ],
+      importance: 'P90的5.7mm弹药可以穿透三级防弹衣，专为对付穿戴防弹装备的敌人设计。其独特的顶部弹匣设计让枪身极其紧凑。',
+      funFact: 'P90的50发弹匣平行放置在枪管上方，子弹在弹匣内旋转90度后进入枪膛，设计极其巧妙。',
+      hotspots: [
+        { name: '顶部弹匣 (Mag)', pos: [0, 0.12, 0], desc: '50发顶部弹匣' },
+        { name: '枪管 (Barrel)', pos: [0, 0.06, -0.2], desc: '5.7mm枪管' },
+        { name: '握把 (Grip)', pos: [0, -0.02, 0.08], desc: '人体工学握把' },
+        { name: '瞄准镜 (Sight)', pos: [0, 0.14, -0.05], desc: '内置反射式瞄准镜' },
+        { name: '枪口 (Muzzle)', pos: [0, 0.06, -0.3], desc: '消焰器' },
+      ],
+    },{
+      id: 'ump45',
+      name: 'UMP45',
+      nameEn: 'HK UMP45',
+      type: '冲锋枪',
+      icon: '🔫',
+      category: 'SUBMACHINE GUNS',
+      subtitle: 'The tactical workhorse',
+      desc: 'UMP45是德国HK公司设计的.45口径冲锋枪，以低后坐力和高停止作用著称。被全球执法机构和特种部队广泛采用。',
+      facts: [
+        { icon: '', label: '全长', value: '450-690 mm' },
+        { icon: '⚖️', label: '重量', value: '2.3 kg' },
+        { icon: '📅', label: '服役', value: '1999年 德国' },
+        { icon: '🎯', label: '射程', value: '100 m' },
+        { icon: '💨', label: '射速', value: '600 发/分' },
+      ],
+      importance: 'UMP45的.45 ACP大口径弹药拥有极强的停止作用，一枪即可让目标丧失战斗力，是CQB作战的理想选择。',
+      funFact: 'UMP45在《彩虹六号》和《绝地求生》等游戏中都是热门武器，其稳定的射击手感深受玩家喜爱。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.08, -0.2], desc: '.45口径枪管' },
+        { name: '机匣 (Receiver)', pos: [0, 0.08, 0.02], desc: '聚合物机匣' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.06, 0.04], desc: '.45 ACP 25发' },
+        { name: '枪托 (Stock)', pos: [0, 0.07, 0.28], desc: '可折叠枪托' },
+        { name: '导轨 (Rail)', pos: [0, 0.12, 0], desc: '顶部皮卡汀尼导轨' },
+      ],
+    },{
+      id: 'vector',
+      name: 'Vector',
+      nameEn: 'KRISS Vector',
+      type: '冲锋枪',
+      icon: '🔫',
+      category: 'SUBMACHINE GUNS',
+      subtitle: 'The recoil eliminator',
+      desc: 'Vector采用革命性的Super V后坐力消除系统，将后坐力向下传导而非向后，让全自动射击异常平稳。',
+      facts: [
+        { icon: '', label: '全长', value: '406-635 mm' },
+        { icon: '️', label: '重量', value: '2.7 kg' },
+        { icon: '', label: '服役', value: '2009年 美国' },
+        { icon: '🎯', label: '射程', value: '100 m' },
+        { icon: '💨', label: '射速', value: '1200 发/分' },
+      ],
+      importance: 'Vector的Super V系统彻底改变了冲锋枪的后坐力控制方式。1200发/分的超高射速配合极低后坐力，让它成为近战利器。',
+      funFact: 'Vector的Super V系统使用一个配重块在枪机后方上下运动，将后坐力转化为向下的力，射手几乎感受不到后坐力。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.07, -0.2], desc: '9mm/.45枪管' },
+        { name: 'Super V系统', pos: [0, 0.04, 0.02], desc: '后坐力消除系统' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.08, 0.06], desc: '33发扩容弹匣' },
+        { name: '握把 (Grip)', pos: [0, -0.04, 0.08], desc: '人体工学握把' },
+        { name: '枪托 (Stock)', pos: [0, 0.06, 0.25], desc: '折叠枪托' },
+      ],
+    },{
+      id: 'barrett',
+      name: 'M82',
+      nameEn: 'Barrett M82',
+      type: '反器材狙击步枪',
+      icon: '',
+      category: 'SNIPER RIFLES',
+      subtitle: 'The .50 cal beast',
+      desc: 'M82是巴雷特公司设计的.50口径反器材狙击步枪，能在一英里外击穿装甲车。是世界上最具威名的狙击武器之一。',
+      facts: [
+        { icon: '', label: '全长', value: '1448 mm' },
+        { icon: '⚖️', label: '重量', value: '14.0 kg' },
+        { icon: '📅', label: '服役', value: '1982年 美国' },
+        { icon: '', label: '射程', value: '1800 m' },
+        { icon: '💨', label: '口径', value: '.50 BMG' },
+      ],
+      importance: 'M82的.50 BMG弹药可以击穿轻型装甲、摧毁雷达设备和弹药库。它让狙击手具备了反器材能力，改变了现代战场规则。',
+      funFact: 'M82的后坐力极大，但枪口制退器可以消除约70%的后坐力。即便如此，射手仍需经过专门训练才能驾驭它。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.1, -0.7], desc: '.50 BMG重型枪管' },
+        { name: '机匣 (Receiver)', pos: [0, 0.08, 0], desc: '钢制机匣' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.06, 0.04], desc: '.50 BMG 10发' },
+        { name: '制退器 (Brake)', pos: [0, 0.1, -0.95], desc: '大型枪口制退器' },
+        { name: '两脚架 (Bipod)', pos: [0, -0.06, -0.3], desc: '可调两脚架' },
+      ],
+    },{
+      id: 'svd',
+      name: 'SVD',
+      nameEn: 'Dragunov SVD',
+      type: '狙击步枪',
+      icon: '🎯',
+      category: 'SNIPER RIFLES',
+      subtitle: 'The Soviet marksman',
+      desc: 'SVD德拉贡诺夫狙击步枪是苏联设计的半自动狙击步枪，兼顾精度和射速。至今仍在俄罗斯及前华约国家服役。',
+      facts: [
+        { icon: '', label: '全长', value: '1225 mm' },
+        { icon: '⚖️', label: '重量', value: '4.3 kg' },
+        { icon: '📅', label: '服役', value: '1963年 苏联' },
+        { icon: '🎯', label: '射程', value: '1300 m' },
+        { icon: '💨', label: '口径', value: '7.62×54mmR' },
+      ],
+      importance: 'SVD是世界上最成功的半自动狙击步枪之一。它让班排级单位拥有精确火力支援能力，无需等待专业狙击手。',
+      funFact: 'SVD的PSO-1瞄准镜带有测距分划，可以通过测量目标高度来估算距离，无需激光测距仪。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.08, -0.55], desc: '7.62mm重型枪管' },
+        { name: '机匣 (Receiver)', pos: [0, 0.08, 0], desc: '铣削钢机匣' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.06, 0.04], desc: '7.62mm 10发' },
+        { name: '瞄准镜 (Scope)', pos: [0, 0.16, -0.1], desc: 'PSO-1光学瞄准镜' },
+        { name: '木质护木', pos: [0, 0.06, -0.25], desc: '层压板护木' },
+      ],
+    },{
+      id: 'thompson',
+      name: '汤普森',
+      nameEn: 'Thompson SMG',
+      type: '冲锋枪',
+      icon: '🔫',
+      category: 'SUBMACHINE GUNS',
+      subtitle: 'The gangster gun',
+      desc: '汤普森冲锋枪是1920年代美国禁酒令时期的标志性武器，因黑帮广泛使用而被称为"芝加哥打字机"。',
+      facts: [
+        { icon: '', label: '全长', value: '810 mm' },
+        { icon: '️', label: '重量', value: '4.9 kg' },
+        { icon: '', label: '服役', value: '1921年 美国' },
+        { icon: '🎯', label: '射程', value: '150 m' },
+        { icon: '💨', label: '射速', value: '700 发/分' },
+      ],
+      importance: '汤普森冲锋枪在二战中被盟军广泛使用，其.45口径弹药的停止作用让它在近战中大放异彩。',
+      funFact: '汤普森冲锋枪的鼓形弹匣可装50-100发子弹，但实战中士兵更喜欢用20-30发的直弹匣，因为更可靠。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.08, -0.25], desc: '.45口径枪管' },
+        { name: '机匣 (Receiver)', pos: [0, 0.08, 0.02], desc: '钢制机匣' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.08, 0.04], desc: '.45 ACP 30发' },
+        { name: '前握把 (Foregrip)', pos: [0, -0.02, -0.1], desc: '垂直前握把' },
+        { name: '枪托 (Stock)', pos: [0, 0.07, 0.3], desc: '固定木质枪托' },
+      ],
+    },{
+      id: 'python',
+      name: '柯尔特蟒蛇',
+      nameEn: 'Colt Python',
+      type: '左轮手枪',
+      icon: '🔫',
+      category: 'PISTOLS',
+      subtitle: 'The Rolls-Royce of revolvers',
+      desc: '柯尔特蟒蛇是1955年推出的.357马格南左轮手枪，以无与伦比的精度和工艺著称，被誉为"左轮手枪中的劳斯莱斯"。',
+      facts: [
+        { icon: '', label: '全长', value: '254 mm' },
+        { icon: '⚖️', label: '重量', value: '1.2 kg' },
+        { icon: '📅', label: '服役', value: '1955年 美国' },
+        { icon: '🎯', label: '射程', value: '100 m' },
+        { icon: '', label: '口径', value: '.357 Magnum' },
+      ],
+      importance: '柯尔特蟒蛇代表了左轮手枪制造的巅峰工艺。每把枪都经过手工打磨和调校，扳机手感如丝般顺滑。',
+      funFact: '柯尔特蟒蛇在2020年重新投产，新版本的工艺甚至超越了原版，成为收藏家和射击爱好者的圣杯。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.08, -0.18], desc: '.357马格南枪管' },
+        { name: '转轮 (Cylinder)', pos: [0, 0.06, 0], desc: '6发转轮弹巢' },
+        { name: '握把 (Grip)', pos: [0, -0.04, 0.06], desc: '木质握把' },
+        { name: '扳机 (Trigger)', pos: [0, 0.01, 0.04], desc: '单/双动扳机' },
+        { name: '击锤 (Hammer)', pos: [0, 0.1, 0.04], desc: '外露击锤' },
+      ],
+    },{
+      id: 'ppsh41',
+      name: 'PPSh-41',
+      nameEn: 'PPSh-41',
+      type: '冲锋枪',
+      icon: '🔫',
+      category: 'SUBMACHINE GUNS',
+      subtitle: 'The Soviet storm',
+      desc: 'PPSh-41是二战中苏联产量最大的冲锋枪，超过600万支。以极高的射速和71发鼓形弹匣著称，是苏军突击的利器。',
+      facts: [
+        { icon: '', label: '全长', value: '843 mm' },
+        { icon: '⚖️', label: '重量', value: '3.6 kg' },
+        { icon: '📅', label: '服役', value: '1941年 苏联' },
+        { icon: '🎯', label: '射程', value: '150 m' },
+        { icon: '💨', label: '射速', value: '1000 发/分' },
+      ],
+      importance: 'PPSh-41在斯大林格勒战役中发挥了关键作用。其1000发/分的超高射速让苏军在近战中拥有压倒性火力优势。',
+      funFact: '德军缴获PPSh-41后非常喜欢使用，甚至将其改装为发射德军9mm弹药，命名为MP717(r)。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.08, -0.25], desc: '7.62mm枪管' },
+        { name: '机匣 (Receiver)', pos: [0, 0.08, 0.02], desc: '冲压钢机匣' },
+        { name: '鼓形弹匣', pos: [0, -0.08, 0.04], desc: '71发鼓形弹匣' },
+        { name: '枪口制退器', pos: [0, 0.08, -0.38], desc: '斜切制退器' },
+        { name: '木质枪托', pos: [0, 0.07, 0.3], desc: '固定木质枪托' },
+      ],
+    },{
+      id: 'm1garand',
+      name: 'M1加兰德',
+      nameEn: 'M1 Garand',
+      type: '半自动步枪',
+      icon: '🎯',
+      category: 'ASSAULT RIFLES',
+      subtitle: 'The greatest battle implement',
+      desc: 'M1加兰德是二战中美军的标准步枪，也是世界上第一种大规模装备的半自动步枪。巴顿将军称其为"最伟大的战斗武器"。',
+      facts: [
+        { icon: '', label: '全长', value: '1107 mm' },
+        { icon: '⚖️', label: '重量', value: '4.3 kg' },
+        { icon: '📅', label: '服役', value: '1936年 美国' },
+        { icon: '🎯', label: '射程', value: '730 m' },
+        { icon: '', label: '口径', value: '.30-06' },
+      ],
+      importance: 'M1加兰德的半自动火力让美军在二战中拥有对轴心国栓动步枪的压倒性优势。8发漏夹打完后会发出清脆的"叮"声。',
+      funFact: 'M1加兰德打完弹夹后弹出的声音非常响亮，有士兵开玩笑说这个声音在提醒敌人"我没子弹了"。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.08, -0.45], desc: '.30-06枪管' },
+        { name: '机匣 (Receiver)', pos: [0, 0.08, 0.02], desc: '钢制机匣' },
+        { name: '弹夹 (Clip)', pos: [0, 0.06, 0.04], desc: '8发漏夹' },
+        { name: '木质护木', pos: [0, 0.06, -0.2], desc: '胡桃木护木' },
+        { name: '枪托 (Stock)', pos: [0, 0.07, 0.35], desc: '固定木质枪托' },
+      ],
+    },{
+      id: 'famas',
+      name: 'FAMAS',
+      nameEn: 'FAMAS F1',
+      type: '突击步枪',
+      icon: '🎯',
+      category: 'ASSAULT RIFLES',
+      subtitle: 'The French bullpup',
+      desc: 'FAMAS是法国设计的无托结构突击步枪，外形独特像一把未来武器。25发弹匣位于握把后方，让枪身极短但枪管不短。',
+      facts: [
+        { icon: '', label: '全长', value: '757 mm' },
+        { icon: '⚖️', label: '重量', value: '3.6 kg' },
+        { icon: '📅', label: '服役', value: '1978年 法国' },
+        { icon: '🎯', label: '射程', value: '300 m' },
+        { icon: '', label: '射速', value: '900-1100 发/分' },
+      ],
+      importance: 'FAMAS的无托设计让法军拥有全尺寸枪管的火力，同时保持紧凑的枪身长度，适合装甲兵和伞兵使用。',
+      funFact: 'FAMAS的昵称是"Le Clairon"（军号），因为它的外形像一把法国军号。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.08, -0.2], desc: '5.56mm枪管' },
+        { name: '机匣 (Receiver)', pos: [0, 0.08, 0.05], desc: '聚合物机匣' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.06, 0.1], desc: '5.56mm 25发' },
+        { name: '提把 (Handle)', pos: [0, 0.16, 0.02], desc: '内置提把' },
+        { name: '两脚架', pos: [0, -0.06, -0.1], desc: '折叠两脚架' },
+      ],
+    },{
+      id: 'aug',
+      name: 'AUG',
+      nameEn: 'Steyr AUG',
+      type: '突击步枪',
+      icon: '',
+      category: 'ASSAULT RIFLES',
+      subtitle: 'The Austrian pioneer',
+      desc: 'AUG是奥地利斯太尔公司设计的无托突击步枪，1977年服役时是世界上第一种大规模装备的无托步枪。',
+      facts: [
+        { icon: '', label: '全长', value: '790 mm' },
+        { icon: '⚖️', label: '重量', value: '3.6 kg' },
+        { icon: '📅', label: '服役', value: '1977年 奥地利' },
+        { icon: '', label: '射程', value: '300 m' },
+        { icon: '', label: '射速', value: '700 发/分' },
+      ],
+      importance: 'AUG开创了无托步枪的先河，其模块化设计允许快速更换枪管，在突击步枪和轻机枪之间切换。',
+      funFact: 'AUG在《彩虹六号》和《使命召唤》等游戏中都是热门武器，其独特的外形让人一眼就能认出。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.08, -0.2], desc: '5.56mm快拆枪管' },
+        { name: '机匣 (Receiver)', pos: [0, 0.08, 0.05], desc: '聚合物机匣' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.06, 0.1], desc: '5.56mm 30发' },
+        { name: '瞄准镜 (Scope)', pos: [0, 0.14, 0], desc: '1.5倍光学瞄准镜' },
+        { name: '握把 (Grip)', pos: [0, -0.02, 0.08], desc: '人体工学握把' },
+      ],
+    },{
+      id: 'galil',
+      name: '加利尔',
+      nameEn: 'IMI Galil',
+      type: '突击步枪',
+      icon: '🎯',
+      category: 'ASSAULT RIFLES',
+      subtitle: 'The Israeli warrior',
+      desc: '加利尔是以色列设计的突击步枪，基于AK-47改进，适应沙漠环境。以极高的可靠性著称，在沙尘中仍能正常射击。',
+      facts: [
+        { icon: '', label: '全长', value: '979 mm' },
+        { icon: '⚖️', label: '重量', value: '3.95 kg' },
+        { icon: '📅', label: '服役', value: '1972年 以色列' },
+        { icon: '🎯', label: '射程', value: '500 m' },
+        { icon: '💨', label: '射速', value: '650 发/分' },
+      ],
+      importance: '加利尔继承了AK系列的可靠性，同时提高了精度。它是以色列国防军的标志性武器，也是多国军队的选择。',
+      funFact: '加利尔的枪口制退器可以兼作开瓶器使用，这个设计来自以色列士兵的实际需求。',
+      hotspots: [
+        { name: '枪管 (Barrel)', pos: [0, 0.08, -0.45], desc: '5.56mm枪管' },
+        { name: '机匣 (Receiver)', pos: [0, 0.08, 0], desc: '冲压钢机匣' },
+        { name: '弹匣 (Magazine)', pos: [0, -0.08, 0.04], desc: '5.56mm 35发' },
+        { name: '两脚架', pos: [0, -0.06, -0.2], desc: '折叠两脚架' },
+        { name: '枪托 (Stock)', pos: [0, 0.07, 0.38], desc: '折叠金属枪托' },
+      ],
+    }
+  ];
+
+  // ===== Sketchfab Model UIDs =====
+  const sketchfabModels = {
+    'ak47': '831519a097d84e079fd8bc4b15e5b57d',
+    'm4a1': 'fa4a73faf4234e5db4066335074a7655',
+    'desert-eagle': 'dc0c2fab66b1432e8ecf6b0e87632408',
+    'awp': 'f78a0ccafd304f15b46d087ad896478f',
+    'mp5': 'a73b61932a0e4eecb5db5c63c158aa24',
+    'm249': 'bf0105376a2d4c37926f3ce95316460d',
+    'm416': 'cd6f54cf0dff4222b65ff04457364ef1',
+    'm1911': '06a24738a9664466beae2867b917f37c',
+    'g17': '0a95e2b031384a20980f6ce0ca422de0',
+    'g18': 'e51fa8454ed5461aa8929effb2328cb3',
+    'ak74': '9084c3bae8224d338103997bc3101480',
+    'scar-h': 'c52bc2a8ddaa47caa34e94d69ff72d96',
+    'p90': '5375c41b13bd41ae825f97b1a78090a3',
+    'ump45': '3118f528218a43b9b98ad14aef62077e',
+    'vector': '6b2015ec3bbd4e959487135493769190',
+    'barrett': 'e159559ce63b4bae9573a9749e2fd57f',
+    'svd': '2ac78fb5a0eb40f5a02a5b0a9f566abf',
+    'thompson': '5fe11dfebf734b4aa49c43545397abd1',
+    'python': 'be110b7e699e41e28e499f4f4d6e1225',
+    'ppsh41': '089bdfb09ada407da3e75cfcbe2180fe',
+    'm1garand': '987a48d8fb064f3cbde99bd4a5c97d46',
+    'famas': '8d7ad8c8b23d406da3c3b05722f4ef33',
+    'aug': '0bc02ba9c31a46aa9e37fe24f6f39564',
+    'galil': '1024435d5fc64b9db00ab1d460327b1e',
+  };
+
+  // ===== State =====
+  let currentWeapon = null;
+  let autoRotate = true;
+  let sketchfabClient = null;
+  let sketchfabViewer = null;
+
+  // ===== Build UI =====
+  function buildLibrary() {
+    const lib = document.getElementById('weapon-library');
+    lib.innerHTML = '<div class="library-header">枪械库 · GUN LIBRARY</div>';
+    weapons.forEach((w, i) => {
+      const item = document.createElement('div');
+      item.className = 'weapon-item' + (i === 0 ? ' active' : '');
+      item.innerHTML = `
+        <div class="weapon-icon">${w.icon}</div>
+        <div>
+          <div class="weapon-name">${w.name}</div>
+          <div class="weapon-type">${w.type}</div>
+        </div>
+      `;
+      item.addEventListener('click', () => selectWeapon(w.id));
+      lib.appendChild(item);
+    });
+  }
+
+  function buildDetail(weapon) {
+    const panel = document.getElementById('detail-panel');
+    let factsHTML = weapon.facts.map(f => `
+      <div class="fact-row">
+        <span class="fact-icon">${f.icon}</span>
+        <span class="fact-label">${f.label}</span>
+        <span class="fact-value">${f.value}</span>
+      </div>
+    `).join('');
+
+    panel.innerHTML = `
+      <div class="detail-category">${weapon.category}</div>
+      <div class="detail-title">${weapon.name}</div>
+      <div class="detail-subtitle">${weapon.subtitle}</div>
+      <div class="detail-desc">${weapon.desc}</div>
+      <div class="detail-section-title">关键数据 · KEY FACTS</div>
+      ${factsHTML}
+      <div class="importance-box">
+        <div class="label">⚡ 历史意义</div>
+        <p>${weapon.importance}</p>
+      </div>
+      <div class="fun-fact">
+        <div class="label"> 趣味知识</div>
+        <p>${weapon.funFact}</p>
+      </div>
+      <div class="detail-actions">
+        <div class="detail-btn primary">▶ 动作演示</div>
+        <div class="detail-btn">⚖️ 对比</div>
+      </div>
+      <div class="detail-actions">
+        <div class="detail-btn">📝 添加笔记</div>
+        <div class="detail-btn">❤️ 收藏</div>
+      </div>
+    `;
+  }
+
+  // ===== Sketchfab Viewer =====
+  function loadSketchfabModel(uid) {
+    const iframe = document.getElementById('sketchfab-viewer');
+    const viewerArea = document.querySelector('.viewer-area');
+
+    // Remove old client
+    if (sketchfabClient) {
+      sketchfabClient = null;
+    }
+
+    // Set iframe src
+    const embedUrl = `https://sketchfab.com/models/${uid}/embed?autostart=1&ui_theme=dark&ui_inspector=0&ui_watermark=0&ui_ar=0&ui_vr=0&ui_annotations=0&ui_help=0&ui_settings=0&ui_fullscreen=0&ui_animations=0`;
+    iframe.src = embedUrl;
+
+    // Initialize Sketchfab API
+    setTimeout(() => {
+      try {
+        sketchfabViewer = new Sketchfab(iframe);
+        sketchfabViewer.init(uid, {
+          success: function(api) {
+            sketchfabClient = api;
+            api.start();
+            // Set camera
+            api.getCameraLookAt(function(err, lookAt) {
+              if (!err) {
+                api.getCameraPosition(function(err, pos) {
+                  if (!err) {
+                    // Center the model
+                    api.setCameraLookAt([0, 0, 0]);
+                  }
+                });
+              }
+            });
+            // Enable auto-rotate
+            if (autoRotate) {
+              api.addEventListener('viewerready', function() {
+                api.start();
+              });
+            }
+            console.log('Sketchfab model loaded:', uid);
+          },
+          error: function(err) {
+            console.error('Sketchfab error:', err);
+          },
+          autostart: 1,
+          ui_theme: 'dark',
+          ui_inspector: 0,
+          ui_watermark: 0,
+          ui_ar: 0,
+          ui_vr: 0,
+          ui_annotations: 0,
+          ui_help: 0,
+          ui_settings: 0,
+          ui_fullscreen: 0,
+          ui_animations: 0,
+          transparent: 0,
+          background: 0xd8d8d0,
+        });
+      } catch(e) {
+        console.error('Sketchfab init error:', e);
+      }
+    }, 100);
+  }
+
+  function selectWeapon(id) {
+    const weapon = weapons.find(w => w.id === id);
+    if (!weapon) return;
+    currentWeapon = weapon;
+
+    // Update library active state
+    document.querySelectorAll('.weapon-item').forEach((el, i) => {
+      el.classList.toggle('active', weapons[i].id === id);
+    });
+
+    // Load Sketchfab model
+    const uid = sketchfabModels[id];
+    if (uid) {
+      loadSketchfabModel(uid);
+    }
+
+    // Update detail
+    buildDetail(weapon);
+
+    // Update bottom text
+    document.getElementById('viewer-bottom').textContent = `${weapon.name} · ${weapon.nameEn} · 拖拽旋转 · 滚轮缩放`;
+
+    // Update mobile selector
+    const sel = document.getElementById('weapon-select');
+    if (sel) sel.value = weapon.id;
+  }
+
+  // ===== Float Toolbar =====
+  document.getElementById('btn-rotate').addEventListener('click', function() {
+    autoRotate = !autoRotate;
+    this.classList.toggle('active', autoRotate);
+    document.getElementById('auto-rotate-toggle').classList.toggle('on', autoRotate);
+    if (sketchfabClient) {
+      // Sketchfab doesn't have direct auto-rotate toggle via API
+      // But we can reload with different params
+      if (currentWeapon) {
+        const uid = sketchfabModels[currentWeapon.id];
+        loadSketchfabModel(uid);
+      }
+    }
+  });
+
+  document.getElementById('btn-zoom').addEventListener('click', () => {
+    if (sketchfabClient) {
+      sketchfabClient.getCameraPosition(function(err, pos) {
+        if (!err && pos) {
+          const dist = Math.sqrt(pos[0]*pos[0] + pos[1]*pos[1] + pos[2]*pos[2]);
+          const newDist = dist > 3 ? 1.5 : 4;
+          const ratio = newDist / dist;
+          sketchfabClient.setCameraPosition([pos[0]*ratio, pos[1]*ratio, pos[2]*ratio]);
+        }
+      });
+    }
+  });
+
+  document.getElementById('btn-reset').addEventListener('click', () => {
+    if (sketchfabClient && currentWeapon) {
+      const uid = sketchfabModels[currentWeapon.id];
+      loadSketchfabModel(uid);
+    }
+  });
+
+  document.getElementById('btn-compare').addEventListener('click', () => {
+    const ids = Object.keys(sketchfabModels);
+    const idx = ids.indexOf(currentWeapon?.id);
+    const nextId = ids[(idx + 1) % ids.length];
+    selectWeapon(nextId);
+  });
+
+  // Auto rotate toggle
+  document.getElementById('auto-rotate-toggle').addEventListener('click', function() {
+    autoRotate = !autoRotate;
+    this.classList.toggle('on', autoRotate);
+  });
+
+  // Bottom tools
+  document.querySelectorAll('.bottom-tool').forEach(tool => {
+    tool.addEventListener('click', function() {
+      document.querySelectorAll('.bottom-tool').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+
+  // ===== Mobile Weapon Selector =====
+  function populateMobileSelect() {
+    const sel = document.getElementById('weapon-select');
+    sel.innerHTML = '';
+    weapons.forEach(w => {
+      const opt = document.createElement('option');
+      opt.value = w.id;
+      opt.textContent = w.icon + ' ' + w.name;
+      if (w.id === currentWeapon?.id) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', function() {
+      selectWeapon(this.value);
+    });
+  }
+
+  // ===== Init =====
+  buildLibrary();
+  populateMobileSelect();
+  selectWeapon('ak47');
+})();
+</script>
